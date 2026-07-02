@@ -1,0 +1,19 @@
+# Minimal kube-prometheus-stack values for the kind demo.
+# Install:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm install kps prometheus-community/kube-prometheus-stack \
+#     -f day4_devops/monitoring/prometheus-values.yaml
+# Then: kubectl apply -f day4_devops/monitoring/servicemonitor.yaml
+# Grafana: kubectl port-forward svc/kps-grafana 3000:80  (admin / prom-operator)
+grafana:
+  adminPassword: prom-operator
+  sidecar:
+    dashboards:
+      enabled: true
+prometheus:
+  prometheusSpec:
+    # Watch ServiceMonitors in all namespaces regardless of helm-release labels;
+    # in real clusters you'd scope this (see KB-007 for the classic label bug).
+    serviceMonitorSelectorNilUsesHelmValues: false
+alertmanager:
+  enabled: false   # keep the kind demo lean

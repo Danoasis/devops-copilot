@@ -1,0 +1,9 @@
+# kind cluster that can reach the host's Ollama on Linux as host.docker.internal.
+# Create with: kind create cluster --config day4_devops/scripts/kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts: []
+# On Linux, additionally run once per node container if DNS lacks the alias:
+#   docker exec <node> sh -c 'echo "$(ip route | awk "/default/{print \$3}") host.docker.internal" >> /etc/hosts'

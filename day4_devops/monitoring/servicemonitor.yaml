@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devops-copilot
+  labels:
+    release: kps          # must match the Prometheus serviceMonitorSelector (KB-007)
+spec:
+  selector:
+    matchLabels:
+      app: devops-copilot
+  endpoints:
+    - port: http          # the Service PORT NAME, not the number (KB-007 again)
+      path: /metrics
+      interval: 15s

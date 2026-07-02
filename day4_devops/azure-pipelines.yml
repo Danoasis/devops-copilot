@@ -1,0 +1,128 @@
+# DevOps Copilot — CI -> CD -> Eval on a SELF-HOSTED agent (your machine).
+# Self-hosted is not a shortcut here, it is the design: the deploy target (kind)
+# and the model backend (Ollama) live on the same machine as the agent, exactly
+# like a private-network deployment in a company (FUNDAMENTALS ch.8).
+#
+# Setup once:
+#   1. Free Azure DevOps org -> Agent pools -> Default -> New agent -> register
+#      this machine (./config.sh, then ./svc.sh install && ./svc.sh start).
+#   2. Create environment "local-kind" (Pipelines -> Environments) and add an
+#      approval check to see a gated CD stage.
+#   3. Prereqs on the agent machine: docker, kind, kubectl, uv, ollama (models pulled).
+
+trigger:
+  branches:
+    include: [main]
+
+pool:
+  name: Default          # your self-hosted pool
+
+variables:
+  imageName: devops-copilot
+  imageTag: $(Build.SourceVersion)   # immutable SHA tags, never :latest
+
+stages:
+  # ---------------------------------------------------------------- CI ----
+  - stage: CI
+    displayName: "CI: lint, test, build"
+    jobs:
+      - job: lint_test
+        displayName: Lint & unit tests
+        steps:
+          - script: |
+              set -euo pipefail
+              uv sync --extra dev
+              uv run ruff check .
+              uv run pytest -q
+            displayName: ruff + pytest
+
+          - script: |
+              set -euo pipefail
+              # Prove the pipeline is idempotent & runnable WITHOUT a model:
+              # the FakeEmbedder path is exactly what tests use.
+              COPILOT_DB=$(Build.ArtifactStagingDirectory)/ci-index.db \
+                uv run copilot-ingest --fake
+            displayName: Smoke-run ingestion (fake embedder)
+
+      - job: build_image
+        displayName: Build container image
+        dependsOn: lint_test
+        steps:
+          - script: |
+              set -euo pipefail
+              docker build -f day3_service/Dockerfile -t $(imageName):$(imageTag) .
+            displayName: docker build
+
+          - publish: day3_service/k8s
+            artifact: manifests
+            displayName: Publish k8s manifests artifact
+
+  # ---------------------------------------------------------------- CD ----
+  - stage: CD
+    displayName: "CD: deploy to kind"
+    dependsOn: CI
+    jobs:
+      - deployment: deploy_kind
+        displayName: Deploy to local kind cluster
+        environment: local-kind        # approvals & checks attach here
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - download: current
+                  artifact: manifests
+
+                - script: |
+                    set -euo pipefail
+                    kind load docker-image $(imageName):$(imageTag)
+                    cd $(Pipeline.Workspace)/manifests
+                    kustomize edit set image devops-copilot:local=$(imageName):$(imageTag) \
+                      || true   # older kustomize: fall back to sed
+                    kubectl apply -k .
+                    kubectl set image deployment/devops-copilot api=$(imageName):$(imageTag)
+                    kubectl rollout status deployment/devops-copilot --timeout=180s
+                  displayName: kind load + kubectl apply + rollout gate
+
+                - script: |
+                    set -euo pipefail
+                    kubectl port-forward svc/devops-copilot 18000:8000 &
+                    PF_PID=$!
+                    sleep 3
+                    bash day4_devops/scripts/smoke_test.sh http://localhost:18000
+                    kill $PF_PID
+                  displayName: Smoke test /healthz + /triage
+
+  # -------------------------------------------------------------- Eval ----
+  # Quality gates on AI BEHAVIOR, not just on unit tests: the pipeline fails
+  # if the LLM-as-judge scorecard drops below thresholds. "Measurable AI
+  # outcomes" wired into CI/CD.
+  - stage: Eval
+    displayName: "Eval: LLM-as-judge scorecard"
+    dependsOn: CD
+    jobs:
+      - job: run_eval
+        displayName: Run eval against the deployed service
+        steps:
+          - script: |
+              set -euo pipefail
+              uv sync
+              kubectl port-forward svc/devops-copilot 18000:8000 &
+              PF_PID=$!
+              sleep 3
+              uv run copilot-eval --endpoint http://localhost:18000 \
+                --out $(Build.ArtifactStagingDirectory)/scorecard.json
+              kill $PF_PID
+            displayName: copilot-eval (fails under threshold)
+
+          - task: PowerShell@2
+            displayName: Summarize scorecard (PowerShell)
+            condition: always()
+            inputs:
+              filePath: day4_devops/scripts/Publish-Scorecard.ps1
+              arguments: -ScorecardPath $(Build.ArtifactStagingDirectory)/scorecard.json
+
+          - publish: $(Build.ArtifactStagingDirectory)/scorecard.json
+            artifact: scorecard
+            condition: always()
+            displayName: Publish scorecard artifact
