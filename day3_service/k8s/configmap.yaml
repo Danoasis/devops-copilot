@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-copilot-config
+data:
+  # kind nodes are Docker containers; host.docker.internal resolves to the host
+  # (on Linux, create the cluster with the kind config in day4_devops/scripts/,
+  # or patch this to your host IP).
+  OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+  CHAT_MODEL: "qwen2.5:7b"
+  EMBED_MODEL: "nomic-embed-text"
+  MAX_CONCURRENT_TRIAGES: "4"

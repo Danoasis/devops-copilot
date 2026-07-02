@@ -1,0 +1,32 @@
+# Local dev: API + Jaeger. Ollama stays on the HOST (GPU/RAM access); containers
+# reach it via host.docker.internal (extra_hosts makes that work on Linux too).
+# Run from the repo root:  docker compose -f day3_service/compose.yaml up --build
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: day3_service/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      CHAT_MODEL: ${CHAT_MODEL:-qwen2.5:7b}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - copilot-data:/app/data
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"   # trace UI
+      - "4318:4318"     # OTLP/HTTP ingest
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+volumes:
+  copilot-data:

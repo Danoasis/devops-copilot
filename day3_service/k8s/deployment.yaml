@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-copilot
+  labels: { app: devops-copilot }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: devops-copilot }
+  template:
+    metadata:
+      labels: { app: devops-copilot }
+    spec:
+      containers:
+        - name: api
+          image: devops-copilot:local   # CI overrides this with the SHA tag
+          imagePullPolicy: IfNotPresent # kind: image is side-loaded, never pulled
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef: { name: devops-copilot-config }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: 500m, memory: 512Mi }
+          livenessProbe:            # "restart me": process-only, NEVER a dependency
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:           # "gate my traffic": checks Ollama reachability
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3

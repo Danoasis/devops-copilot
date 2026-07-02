@@ -1,0 +1,19 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: devops-copilot
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: devops-copilot
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    # CPU is a weak proxy for LLM-bound work (the bottleneck is the model, not
+    # our CPU); at scale you'd target a custom metric like triage_in_flight or
+    # p95 latency via the prometheus-adapter. CPU kept here for the demo.
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
