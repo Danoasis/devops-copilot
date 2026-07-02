@@ -1,0 +1,20 @@
+[
+  {"id": "TICK-1001", "status": "open", "priority": "high",
+   "subject": "checkout-api pod keeps restarting in prod",
+   "body": "Since this morning the checkout-api deployment shows restarts climbing (47 and counting). kubectl get pods shows CrashLoopBackOff. Last deploy was yesterday 18:30. No logs visible when I run kubectl logs, it prints nothing and exits."},
+  {"id": "TICK-1002", "status": "open", "priority": "high",
+   "subject": "New release won't start: ErrImagePull on payments service",
+   "body": "Deployed payments v2.4.1 to staging and the pods never start. Events say Failed to pull image 'acrprodeu.azurecr.io/payments:v2.4.1': unauthorized. It worked last month. Nothing changed on our side that I know of."},
+  {"id": "TICK-1003", "status": "open", "priority": "medium",
+   "subject": "Nightly terraform pipeline failing with state lock error",
+   "body": "The 02:00 infra pipeline fails with 'Error acquiring the state lock, state blob is already locked'. Yesterday someone cancelled a run halfway. Every run since then fails the same way."},
+  {"id": "TICK-1004", "status": "open", "priority": "medium",
+   "subject": "Grafana dashboards empty for the orders service",
+   "body": "After migrating orders-svc to the new namespace, all its Grafana panels show No data. Prometheus targets page shows nothing for it at all. The app itself is healthy and serving traffic."},
+  {"id": "TICK-1005", "status": "closed", "priority": "high",
+   "subject": "API TLS errors from partner integrations",
+   "body": "Partners report certificate has expired errors hitting api.example.com since 00:00 UTC. Browser shows NET::ERR_CERT_DATE_INVALID. cert-manager is installed but the Certificate shows Ready: False."},
+  {"id": "TICK-1006", "status": "open", "priority": "low",
+   "subject": "Build queue stuck since the office move",
+   "body": "All our release pipelines have been sitting in Queued state since Monday. The message says all potential agents are offline. Microsoft-hosted jobs run fine, it is only our own pool."}
+]
