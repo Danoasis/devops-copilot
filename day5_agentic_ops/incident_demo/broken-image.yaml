@@ -1,0 +1,20 @@
+# Synthetic incident #1: ImagePullBackOff (KB-002).
+# Apply:  kubectl apply -f day5_agentic_ops/incident_demo/broken-image.yaml
+# Then:   COPILOT_ENABLE_OPS_TOOLS=1 uv run copilot-diagnose
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-frontend
+  labels: { app: web-frontend, demo: incident }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: web-frontend }
+  template:
+    metadata:
+      labels: { app: web-frontend }
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.99-nonexistent   # tag was never published
+          ports: [{ containerPort: 80 }]
