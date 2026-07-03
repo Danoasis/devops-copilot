@@ -44,6 +44,10 @@ demonstrated literally.
 
 ## Architecture
 
+![Platform architecture](img/platform-architecture.png)
+
+<details><summary>ASCII version</summary>
+
 ```
                         ┌──────────────────────────────────────────────┐
                         │              Azure DevOps                    │
@@ -71,6 +75,8 @@ demonstrated literally.
                                       (Ollama serves both            └──────────────────┘
                                        chat + embed models)
 ```
+
+</details>
 
 ---
 

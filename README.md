@@ -20,6 +20,10 @@ Two companion documents live in [`docs/`](docs/):
 
 ## Architecture
 
+![System architecture](docs/img/system-architecture.png)
+
+<details><summary>ASCII version (terminal-friendly)</summary>
+
 ```
                         ┌──────────────────────────────────────────────┐
                         │              Azure DevOps Pipeline           │
@@ -41,6 +45,8 @@ Two companion documents live in [`docs/`](docs/):
                                     └── ops tools (day5): kubectl read-only,
                                         writes double-gated
 ```
+
+</details>
 
 The agent is a **hand-rolled tool-calling loop** (`day2_agent/agent/loop.py`):
 LLM proposes a tool call → client executes it via MCP → result goes back into
@@ -66,6 +72,10 @@ shows the same agent built on a framework instead.
 ## Quickstart
 
 Prereqs: Python 3.12+, [uv](https://docs.astral.sh/uv/), [Ollama](https://ollama.com).
+
+Not sure your machine can handle it? `bash scripts/check-env.sh` verifies RAM,
+disk, GPU, and every tool per tier — core (days 1-2) must pass; day 3/4/5
+tooling only warns.
 
 ```bash
 # 1. Pull local models (~5 GB total)
