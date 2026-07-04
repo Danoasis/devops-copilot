@@ -103,6 +103,7 @@ curl -N -X POST 'localhost:8000/triage?stream=true' \
 ### Tests and lint (no Ollama needed)
 
 ```bash
+uv sync --extra dev
 uv run pytest          # 23 tests: chunker, sqlite-vec index, ingest, schemas, eval helpers
 uv run ruff check .
 ```
