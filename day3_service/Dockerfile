@@ -22,8 +22,8 @@ RUN uv sync --no-dev
 FROM python:3.12-slim
 RUN useradd --create-home app
 WORKDIR /app
-RUN mkdir -p /app/data
 COPY --from=builder --chown=app:app /app /app
+RUN mkdir -p /app/data && chown -R app:app /app/data
 USER app
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
