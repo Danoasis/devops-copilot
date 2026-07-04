@@ -30,13 +30,25 @@ EventCallback = Callable[[dict[str, Any]], None]
 
 
 def _extract_json(text: str) -> dict[str, Any]:
-    """Tolerate models that wrap JSON in prose or ```json fences."""
+    """Tolerate the JSON local models actually emit, not the JSON the spec wants.
+
+    Two real-world deviations we forgive:
+    1. Prose or ```json fences around the object.
+    2. Raw control characters (literal newlines/tabs) inside string values -
+       qwen2.5 and friends write multi-line replies with actual newlines
+       instead of \\n, which strict json.loads rejects. We first try strict
+       parsing (fast path, correct output), then fall back to escaping the
+       stray control chars and re-parsing.
+    """
     text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end == -1:
         raise json.JSONDecodeError("no JSON object found", text, 0)
-    return json.loads(text[start : end + 1])
-
+    blob = text[start : end + 1]
+    try:
+        return json.loads(blob)
+    except json.JSONDecodeError:
+        return json.loads(blob, strict=False)
 
 class AgentError(RuntimeError):
     pass

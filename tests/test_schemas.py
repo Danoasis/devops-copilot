@@ -87,3 +87,23 @@ def test_aggregate_counts_failures_against_accuracy():
     assert s["n"] == 2
     assert s["schema_ok_rate"] == 0.5
     assert s["category_accuracy"] == 0.5
+
+# --- agent JSON extraction: real local-model output quirks -----------------
+
+def test_extract_json_tolerates_raw_newlines_in_strings():
+    """qwen2.5 writes multi-line replies with literal newlines instead of \\n;
+    strict json.loads rejects them. Regression for the OOMKilled triage crash."""
+    from day2_agent.agent.loop import _extract_json
+    raw = ('{\n  "category": "kubernetes",\n'
+           '  "suggested_reply": "OOMKilled (exit 137).\nRaise the memory limit.",\n'
+           '  "citations": ["KB-003"],\n  "confidence": 0.9\n}')
+    result = _extract_json(raw)
+    assert result["category"] == "kubernetes"
+    assert result["citations"] == ["KB-003"]
+    assert "\n" in result["suggested_reply"]
+
+
+def test_extract_json_still_handles_fences_and_prose():
+    from day2_agent.agent.loop import _extract_json
+    raw = 'Sure:\n```json\n{"category":"ci_cd","suggested_reply":"x","citations":[],"confidence":0.5}\n```'
+    assert _extract_json(raw)["category"] == "ci_cd"
