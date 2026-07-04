@@ -60,6 +60,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DevOps Copilot", version="0.1.0", lifespan=lifespan)
 
+@app.get("/")
+async def root() -> dict:
+    return {
+        "service": "devops-copilot",
+        "endpoints": ["/triage", "/healthz", "/readyz", "/metrics", "/docs"],
+    }
+
 
 @app.get("/healthz")
 async def healthz() -> dict:
@@ -169,3 +176,4 @@ def _finalize_metrics(result, usage, error, latency_ms: float) -> None:
         LLM_TOKENS.labels(kind="prompt").inc(usage["prompt_tokens"])
     if usage.get("completion_tokens"):
         LLM_TOKENS.labels(kind="completion").inc(usage["completion_tokens"])
+
